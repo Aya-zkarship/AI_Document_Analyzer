@@ -44,7 +44,7 @@ Job Description Text:
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            # ✅ Bddli had line s s-smiya l-jdida stable
+            
             model="llama-3.3-70b-versatile", 
             temperature=0.0,
             response_format={"type": "json_object"}
