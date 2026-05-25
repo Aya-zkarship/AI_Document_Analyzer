@@ -33,7 +33,7 @@ def upload_and_analyze(request):
             match_percentage=match_score
         )
 
-        # 🎯 Blast JsonResponse, ghadin n-passiw kollchi l template jdid:
+       
         return render(request, "analyzer/result.html", {
             "analysis": analysis,
             "ai_result": ai_response
