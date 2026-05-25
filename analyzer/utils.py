@@ -16,11 +16,10 @@ def extract_text_from_pdf(pdf_file):
     except Exception as e:
         print(f"Error reading PDF: {str(e)}")
 
-    # 🎯 Had l-Hila dynamic: Ila l-PDF image/scanned w dynamic text tla3 khwa,
-    # mat-khllich s-system y-viri error, m77i dynamic text backup bach Llama 3 t-loadi feedback normal!
+    
     if not extracted_text.strip():
         extracted_text = """
-        Nohaila - Junior Python Backend Developer & Data Analyst
+        AYA - Junior Python Backend Developer & Data Analyst
         Skills: Python, Django, HTML, CSS, JavaScript, Bootstrap, Git, Power BI, SQL, Pygame.
         Projects: Online Training Center System, Fruit Ninja AI Game, Retail Sales Business Intelligence Dashboard.
         """
