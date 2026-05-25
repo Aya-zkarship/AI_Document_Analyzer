@@ -1,84 +1,686 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analysis Results</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <div class="container py-5">
-        <div class="card shadow p-4 mb-4">
-            <h2 class="text-primary mb-3">🎯 Results for: {{ analysis.job_description.title }}</h2>
-            <hr>
-            
-            <h4 class="fw-bold mt-3">Match Score: {{ analysis.match_percentage }}%</h4>
-            <div class="progress mb-4" style="height: 30px;">
-                <div id="dynamic-progress-bar" 
-                     class="progress-bar bg-success fs-5 fw-bold" 
-                     role="progressbar" 
-                     aria-valuenow="{{ analysis.match_percentage }}" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100">
-                     {{ analysis.match_percentage }}%
-                </div>
-            </div>
-
-            <div class="alert alert-info border-start border-info border-4 shadow-sm mb-4">
-                <h5 class="fw-bold">💡 Recruiter Advice:</h5>
-                <p class="mb-0 fs-5 text-dark">{{ ai_result.feedback }}</p>
-            </div>
-
-            <div class="row mt-4">
-                <div class="col-md-6 mb-3">
-                    <div class="card border-success h-100 shadow-sm">
-                        <div class="card-header bg-success text-white fw-bold">✔️ Matched Skills Found</div>
-                        <div class="card-body">
-                            {% if ai_result.matched_skills %}
-                                <div class="d-flex flex-wrap gap-2">
-                                    {% for skill in ai_result.matched_skills %}
-                                        <span class="badge bg-success p-2 fs-6">{{ skill }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="text-muted mb-0">No direct skills matched.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <div class="card border-danger h-100 shadow-sm">
-                        <div class="card-header bg-danger text-white fw-bold">❌ Missing Skills (Gaps)</div>
-                        <div class="card-body">
-                            {% if ai_result.missing_skills %}
-                                <div class="d-flex flex-wrap gap-2">
-                                    {% for skill in ai_result.missing_skills %}
-                                        <span class="badge bg-danger p-2 fs-6">{{ skill }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="text-muted mb-0">Perfect match! No missing skills detected.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="text-center mt-4">
-                <a href="{% url 'upload_and_analyze' %}" class="btn btn-primary btn-lg px-5">🔄 Analyze Another Resume</a>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var progressBar = document.getElementById("dynamic-progress-bar");
-            if (progressBar) {
-                var score = progressBar.getAttribute("aria-valuenow");
-                progressBar.style.width = score + "%";
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Analysis — Results</title>
+  <!--
+    THEME FLASH PREVENTION: Read localStorage before first paint.
+  -->
+  <script>
+    (function() {
+      var saved = localStorage.getItem('nd-theme');
+      if (saved === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'spin-slow': 'spin 8s linear infinite',
+            'border-spin': 'borderSpin 4s linear infinite',
+            'blink': 'blink 1.2s step-end infinite',
+            'ticker': 'ticker 0.4s ease-out forwards',
+          },
+          keyframes: {
+            borderSpin: {
+              '0%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+              '100%': { backgroundPosition: '0% 50%' },
+            },
+            blink: {
+              '0%, 100%': { opacity: '1' },
+              '50%': { opacity: '0' },
+            },
+            ticker: {
+              from: { strokeDashoffset: 'var(--dash-start)' },
+              to: { strokeDashoffset: 'var(--dash-end)' },
             }
-        });
-    </script>
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* ════════════════════════════════════════════════
+       THEME CSS VARIABLES
+    ════════════════════════════════════════════════ */
+
+    /* ── DARK ── */
+    html.dark {
+      --bg-page:            #03040a;
+      --orb-opacity:        0.08;
+      --grid-color:         rgba(0, 245, 255, 0.012);
+      --star-opacity:       1;
+
+      --glass-bg:           rgba(7, 11, 20, 0.80);
+      --glass-border:       rgba(255,255,255,0.06);
+      --glass-cyan-bg:      rgba(0, 245, 255, 0.03);
+      --glass-cyan-border:  rgba(0, 245, 255, 0.10);
+      --glass-violet-bg:    rgba(191, 95, 255, 0.03);
+      --glass-violet-border:rgba(191, 95, 255, 0.10);
+
+      --text-primary:       #e2f0ff;
+      --text-secondary:     rgba(203, 213, 225, 0.85);
+      --text-muted:         rgba(100, 116, 139, 0.8);
+      --text-faint:         rgba(71, 85, 105, 0.8);
+
+      --header-border:      rgba(255,255,255,0.05);
+      --h-divider:          linear-gradient(90deg, transparent, rgba(0,245,255,0.2), rgba(191,95,255,0.2), transparent);
+
+      --terminal-bg:        rgba(0, 0, 0, 0.6);
+      --terminal-border:    rgba(0, 245, 255, 0.12);
+      --terminal-topbar-bg: rgba(0, 245, 255, 0.03);
+      --terminal-topbar-bdr:rgba(0, 245, 255, 0.08);
+      --terminal-text:      rgba(203, 213, 225, 0.85);
+
+      --title-banner-bg:    linear-gradient(90deg, rgba(0,245,255,0.05), rgba(191,95,255,0.05), transparent);
+      --title-banner-left:  rgba(0,245,255,0.4);
+
+      --arc-track:          rgba(255,255,255,0.05);
+
+      --btn-back-bg:        rgba(0,245,255,0.05);
+      --btn-back-border:    rgba(0,245,255,0.25);
+      --btn-back-color:     rgba(0,245,255,0.8);
+      --btn-back-hover-bg:  rgba(0,245,255,0.12);
+      --btn-back-hover-bdr: rgba(0,245,255,0.5);
+      --btn-back-hover-shd: 0 0 20px rgba(0,245,255,0.15);
+
+      --empty-border:       rgba(255,255,255,0.06);
+      --empty-color:        rgba(148,163,184,0.35);
+
+      --toggle-bg:          rgba(15, 23, 42, 0.9);
+      --toggle-border:      rgba(0, 245, 255, 0.2);
+      --toggle-color:       rgba(0, 245, 255, 0.8);
+      --toggle-hover-bg:    rgba(0, 245, 255, 0.1);
+      --toggle-hover-shd:   0 0 14px rgba(0,245,255,0.15);
+
+      --footer-text:        rgba(71, 85, 105, 0.8);
+      --section-label-color:rgba(0,245,255,0.5);
+      --section-label-pre:  rgba(191,95,255,0.5);
+
+      --score-mini-rose-bg:     rgba(251,113,133,0.04);
+      --score-mini-rose-border: rgba(251,113,133,0.10);
+    }
+
+    /* ── LIGHT ── */
+    html.light {
+      --bg-page:            #f0f4ff;
+      --orb-opacity:        0.06;
+      --grid-color:         rgba(99, 102, 241, 0.04);
+      --star-opacity:       0;
+
+      --glass-bg:           rgba(255, 255, 255, 0.78);
+      --glass-border:       rgba(99, 102, 241, 0.12);
+      --glass-cyan-bg:      rgba(99, 102, 241, 0.04);
+      --glass-cyan-border:  rgba(99, 102, 241, 0.15);
+      --glass-violet-bg:    rgba(139, 92, 246, 0.04);
+      --glass-violet-border:rgba(139, 92, 246, 0.14);
+
+      --text-primary:       #1e293b;
+      --text-secondary:     rgba(30, 41, 59, 0.85);
+      --text-muted:         rgba(71, 85, 105, 0.9);
+      --text-faint:         rgba(100, 116, 139, 0.7);
+
+      --header-border:      rgba(0,0,0,0.06);
+      --h-divider:          linear-gradient(90deg, transparent, rgba(99,102,241,0.25), rgba(139,92,246,0.25), transparent);
+
+      --terminal-bg:        rgba(241, 245, 249, 0.85);
+      --terminal-border:    rgba(99, 102, 241, 0.15);
+      --terminal-topbar-bg: rgba(99, 102, 241, 0.05);
+      --terminal-topbar-bdr:rgba(99, 102, 241, 0.10);
+      --terminal-text:      rgba(30, 41, 59, 0.85);
+
+      --title-banner-bg:    linear-gradient(90deg, rgba(99,102,241,0.06), rgba(139,92,246,0.05), transparent);
+      --title-banner-left:  rgba(99,102,241,0.5);
+
+      --arc-track:          rgba(0,0,0,0.07);
+
+      --btn-back-bg:        rgba(99,102,241,0.07);
+      --btn-back-border:    rgba(99,102,241,0.3);
+      --btn-back-color:     rgba(79,70,229,0.9);
+      --btn-back-hover-bg:  rgba(99,102,241,0.13);
+      --btn-back-hover-bdr: rgba(99,102,241,0.6);
+      --btn-back-hover-shd: 0 0 20px rgba(99,102,241,0.18);
+
+      --empty-border:       rgba(0,0,0,0.07);
+      --empty-color:        rgba(100,116,139,0.5);
+
+      --toggle-bg:          rgba(255, 255, 255, 0.9);
+      --toggle-border:      rgba(99, 102, 241, 0.3);
+      --toggle-color:       rgba(79, 70, 229, 0.9);
+      --toggle-hover-bg:    rgba(99, 102, 241, 0.1);
+      --toggle-hover-shd:   0 0 14px rgba(99,102,241,0.15);
+
+      --footer-text:        rgba(100, 116, 139, 0.7);
+      --section-label-color:rgba(99,102,241,0.6);
+      --section-label-pre:  rgba(139,92,246,0.6);
+
+      --score-mini-rose-bg:     rgba(251,113,133,0.05);
+      --score-mini-rose-border: rgba(251,113,133,0.15);
+    }
+
+    /* ════════════════════════════════════════════════
+       BASE
+    ════════════════════════════════════════════════ */
+    body {
+      background-color: var(--bg-page);
+      font-family: 'JetBrains Mono', monospace;
+      overflow-x: hidden;
+      color: var(--text-primary);
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+
+    /* ── Ambient orbs ── */
+    .orb { position:fixed; border-radius:50%; filter:blur(100px); pointer-events:none; z-index:0; transition:opacity 0.5s ease; }
+    .orb-a { background:#00f5ff; width:600px; height:600px; top:-200px; right:-150px; opacity:var(--orb-opacity); }
+    .orb-b { background:#bf5fff; width:500px; height:500px; bottom:-150px; left:-150px; opacity:var(--orb-opacity); }
+    .orb-c { background:#00ff9d; width:300px; height:300px; top:50%; left:50%; transform:translate(-50%,-50%); opacity:calc(var(--orb-opacity) * 0.5); }
+
+    /* ── Grid ── */
+    .grid-overlay {
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ── Glass cards ── */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid var(--glass-border);
+      transition: background 0.4s ease, border-color 0.4s ease;
+    }
+    .glass-cyan {
+      background: var(--glass-cyan-bg);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-cyan-border);
+      transition: background 0.4s ease, border-color 0.4s ease;
+    }
+    .glass-violet {
+      background: var(--glass-violet-bg);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-violet-border);
+      transition: background 0.4s ease, border-color 0.4s ease;
+    }
+
+    /* ── Gradient text ── */
+    .gradient-text {
+      background: linear-gradient(135deg, #00f5ff, #bf5fff, #00ff9d);
+      background-size: 200% 200%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: borderSpin 5s linear infinite;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase;
+      color: var(--section-label-color);
+      display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;
+      transition: color 0.4s ease;
+    }
+    .section-label::before { content:'//'; color:var(--section-label-pre); }
+    .section-label .line { flex:1; height:1px; background:linear-gradient(90deg, rgba(0,245,255,0.2), transparent); }
+
+    /* ── Circular Arc ── */
+    .arc-wrapper { position:relative; width:200px; height:200px; margin:0 auto; }
+    .arc-wrapper svg { transform:rotate(-90deg); }
+    .arc-track { fill:none; stroke:var(--arc-track); stroke-width:8; stroke-linecap:round; }
+    .arc-fill { fill:none; stroke-width:8; stroke-linecap:round; stroke-dasharray:534; transition:stroke-dashoffset 2s cubic-bezier(0.16, 1, 0.3, 1); }
+    .arc-center-text { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .arc-percent { font-family:'Syne',sans-serif; font-weight:800; font-size:2.8rem; line-height:1; }
+
+    /* ── Score variants ── */
+    .score-high .arc-fill { stroke:url(#gradHigh); }
+    .score-mid  .arc-fill { stroke:url(#gradMid); }
+    .score-low  .arc-fill { stroke:url(#gradLow); }
+    .score-high .arc-percent { color:#00ff9d; text-shadow:0 0 30px rgba(0,255,157,0.4); }
+    .score-mid  .arc-percent { color:#f59e0b; text-shadow:0 0 30px rgba(245,158,11,0.4); }
+    .score-low  .arc-percent { color:#bf5fff; text-shadow:0 0 30px rgba(191,95,255,0.4); }
+
+    /* ── Skill pills – matched ── */
+    .skill-matched {
+      display:flex; align-items:center; gap:0.6rem;
+      padding:0.5rem 0.85rem; border-radius:8px;
+      background:rgba(0,255,157,0.06); border:1px solid rgba(0,255,157,0.18);
+      color:rgba(0,255,157,0.9); font-size:0.78rem;
+      font-family:'JetBrains Mono',monospace; transition:all 0.25s ease;
+    }
+    html.light .skill-matched {
+      background:rgba(5,150,105,0.06); border-color:rgba(5,150,105,0.2); color:rgba(4,120,87,0.9);
+    }
+    .skill-matched:hover { background:rgba(0,255,157,0.12); border-color:rgba(0,255,157,0.4); box-shadow:0 0 16px rgba(0,255,157,0.08); }
+    html.light .skill-matched:hover { background:rgba(5,150,105,0.1); border-color:rgba(5,150,105,0.35); }
+    .skill-matched .icon { width:16px; height:16px; border-radius:50%; background:rgba(0,255,157,0.15); border:1px solid rgba(0,255,157,0.4); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+    /* ── Skill pills – missing ── */
+    .skill-missing {
+      display:flex; align-items:center; gap:0.6rem;
+      padding:0.5rem 0.85rem; border-radius:8px;
+      background:rgba(251,113,133,0.05); border:1px solid rgba(251,113,133,0.18);
+      color:rgba(251,113,133,0.85); font-size:0.78rem;
+      font-family:'JetBrains Mono',monospace; transition:all 0.25s ease;
+    }
+    html.light .skill-missing { background:rgba(239,68,68,0.05); border-color:rgba(239,68,68,0.2); color:rgba(185,28,28,0.9); }
+    .skill-missing:hover { background:rgba(251,113,133,0.10); border-color:rgba(251,113,133,0.35); box-shadow:0 0 16px rgba(251,113,133,0.07); }
+    html.light .skill-missing:hover { background:rgba(239,68,68,0.09); border-color:rgba(239,68,68,0.32); }
+    .skill-missing .icon { width:16px; height:16px; border-radius:50%; background:rgba(251,113,133,0.12); border:1px solid rgba(251,113,133,0.35); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align:center; padding:2rem 1rem; color:var(--empty-color); font-size:0.75rem; border:1px dashed var(--empty-border); border-radius:10px; }
+
+    /* ── Terminal panel ── */
+    .terminal { background:var(--terminal-bg); border:1px solid var(--terminal-border); border-radius:12px; overflow:hidden; position:relative; transition:background 0.4s ease, border-color 0.4s ease; }
+    .terminal::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,245,255,0.02) 0%,transparent 40%); pointer-events:none; }
+    html.light .terminal::before { background:linear-gradient(180deg,rgba(99,102,241,0.03) 0%,transparent 40%); }
+    .terminal-topbar { display:flex; align-items:center; gap:0.5rem; padding:0.75rem 1rem; border-bottom:1px solid var(--terminal-topbar-bdr); background:var(--terminal-topbar-bg); transition:background 0.4s ease; }
+    .terminal-dot { width:8px; height:8px; border-radius:50%; }
+    .terminal-content { padding:1.25rem 1.5rem; color:var(--terminal-text); font-size:0.82rem; line-height:1.8; white-space:pre-wrap; transition:color 0.4s ease; }
+    .terminal-cursor { display:inline-block; width:8px; height:14px; background:rgba(0,245,255,0.8); vertical-align:text-bottom; margin-left:2px; animation:blink 1.2s step-end infinite; }
+    html.light .terminal-cursor { background:rgba(99,102,241,0.8); }
+
+    /* ── Title banner ── */
+    .title-banner { position:relative; padding:1.5rem 2rem; background:var(--title-banner-bg); border-left:2px solid var(--title-banner-left); border-radius:0 12px 12px 0; transition:background 0.4s ease, border-color 0.4s ease; }
+    .title-banner::after { content:''; position:absolute; top:0; right:0; bottom:0; left:0; background:linear-gradient(135deg,rgba(0,245,255,0.03),transparent); pointer-events:none; }
+
+    /* ── Back button ── */
+    .btn-back {
+      display:inline-flex; align-items:center; gap:0.6rem;
+      padding:0.7rem 1.5rem; border-radius:10px;
+      border:1px solid var(--btn-back-border);
+      background:var(--btn-back-bg);
+      color:var(--btn-back-color);
+      font-family:'Syne',sans-serif; font-size:0.8rem; font-weight:700;
+      letter-spacing:0.08em; text-transform:uppercase; text-decoration:none;
+      transition:all 0.3s ease;
+    }
+    .btn-back:hover { background:var(--btn-back-hover-bg); border-color:var(--btn-back-hover-bdr); box-shadow:var(--btn-back-hover-shd); color:#fff; }
+    html.light .btn-back:hover { color:#1e1b4b; }
+
+    /* ── Corner decorators ── */
+    .corner-tl { position:absolute; top:10px; left:10px; width:10px; height:10px; border-top:1.5px solid rgba(0,245,255,0.3); border-left:1.5px solid rgba(0,245,255,0.3); border-radius:2px 0 0 0; }
+    .corner-br { position:absolute; bottom:10px; right:10px; width:10px; height:10px; border-bottom:1.5px solid rgba(0,245,255,0.3); border-right:1.5px solid rgba(0,245,255,0.3); border-radius:0 0 2px 0; }
+    html.light .corner-tl { border-color:rgba(99,102,241,0.3) transparent transparent rgba(99,102,241,0.3); }
+    html.light .corner-br { border-color:transparent rgba(99,102,241,0.3) rgba(99,102,241,0.3) transparent; }
+
+    /* ── H-divider ── */
+    .h-divider { height:1px; background:var(--h-divider); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:rgba(0,245,255,0.2); border-radius:2px; }
+    html.light ::-webkit-scrollbar-thumb { background:rgba(99,102,241,0.2); }
+
+    /* ── Card entrance ── */
+    .card-entrance { opacity:0; transform:translateY(24px); animation:cardIn 0.7s ease forwards; }
+    @keyframes cardIn { to { opacity:1; transform:translateY(0); } }
+
+    /* ════════════════════════════════════════════════
+       THEME TOGGLE BUTTON (shared style with upload)
+    ════════════════════════════════════════════════ */
+    #theme-toggle {
+      display:flex; align-items:center; justify-content:center;
+      width:38px; height:38px; border-radius:10px;
+      background:var(--toggle-bg); border:1px solid var(--toggle-border);
+      color:var(--toggle-color); cursor:pointer;
+      transition:background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+    }
+    #theme-toggle:hover { background:var(--toggle-hover-bg); box-shadow:var(--toggle-hover-shd); transform:scale(1.07); }
+    #icon-moon { display:block; }
+    #icon-sun  { display:none; }
+    html.light #icon-moon { display:none; }
+    html.light #icon-sun  { display:block; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Background layers -->
+  <div class="grid-overlay"></div>
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+
+  <!-- SVG gradient defs (hidden) -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="gradHigh" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#00f5ff"/>
+        <stop offset="100%" stop-color="#00ff9d"/>
+      </linearGradient>
+      <linearGradient id="gradMid" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f59e0b"/>
+        <stop offset="100%" stop-color="#ef4444"/>
+      </linearGradient>
+      <linearGradient id="gradLow" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#bf5fff"/>
+        <stop offset="100%" stop-color="#6366f1"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="relative z-10 min-h-screen flex flex-col">
+
+    <!-- ══ NAV ══ -->
+    <header class="flex items-center justify-between px-6 md:px-10 py-4" style="border-bottom:1px solid var(--header-border);transition:border-color 0.4s ease;">
+      <div class="flex items-center gap-3">
+        <div class="relative w-8 h-8">
+          <div class="absolute inset-0 rounded-md border border-cyan-400/40 rotate-45 scale-75"></div>
+          <div class="absolute inset-0 rounded-md border border-violet-400/40 -rotate-12"></div>
+          <span class="absolute inset-0 flex items-center justify-center text-cyan-400 text-xs font-bold">AI</span>
+        </div>
+        <span class="font-display text-sm tracking-widest uppercase" style="color:var(--text-muted)">NeuralDocs</span>
+      </div>
+
+      <!-- Right: back link + theme toggle -->
+      <div class="flex items-center gap-3">
+        <a href="{% url 'upload_and_analyze' %}" class="btn-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+          New Analysis
+        </a>
+
+        <!-- ── THEME TOGGLE ── -->
+        <button id="theme-toggle" aria-label="Toggle theme" title="Toggle dark / light mode">
+          <svg id="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg id="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="flex-1 px-4 md:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
+
+      <!-- 1. JOB TITLE BANNER -->
+      <div class="card-entrance" style="animation-delay:0s;">
+        <p class="section-label"><span class="line"></span>Analysis Target<span class="line" style="background:linear-gradient(90deg,transparent,rgba(191,95,255,0.2));"></span></p>
+        <div class="title-banner glass rounded-r-2xl">
+          <p class="font-mono text-xs text-cyan-400/50 mb-1 tracking-widest">// POSITION_TITLE</p>
+          <h1 class="font-display text-3xl md:text-4xl font-800 gradient-text leading-tight">
+            {{ analysis.job_description.title }}
+          </h1>
+          <p class="font-mono text-xs mt-2" style="color:var(--text-faint)">
+            Analyzed against uploaded resume &nbsp;·&nbsp; <span style="color:rgba(0,255,157,0.5)">Report generated successfully</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- 2. MATCH SCORE -->
+      <div class="card-entrance" style="animation-delay:0.1s;">
+        <p class="section-label"><span class="line"></span>Compatibility Score<span class="line" style="background:linear-gradient(90deg,transparent,rgba(191,95,255,0.2));"></span></p>
+        <div class="glass rounded-2xl p-8 relative overflow-hidden" id="score-card">
+          <div class="corner-tl"></div>
+          <div class="corner-br"></div>
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div id="score-glow" style="width:200px;height:200px;border-radius:50%;filter:blur(50px);opacity:0.15;"></div>
+          </div>
+
+          <div class="flex flex-col md:flex-row items-center gap-10">
+            <!-- Circular arc -->
+            <div class="arc-wrapper flex-shrink-0" id="arc-container">
+              <svg viewBox="0 0 200 200" width="200" height="200">
+                <circle class="arc-track" cx="100" cy="100" r="85"/>
+                <circle class="arc-fill" id="arc-fill" cx="100" cy="100" r="85"
+                  stroke-dasharray="534" stroke-dashoffset="534"
+                />
+              </svg>
+              <div class="arc-center-text">
+                <span class="arc-percent" id="arc-percent">0%</span>
+                <span class="font-mono text-xs mt-1" style="color:var(--text-faint)">MATCH</span>
+              </div>
+            </div>
+
+            <!-- Score breakdown text -->
+            <div class="flex-1 space-y-4">
+              <div>
+                <p class="font-mono text-xs mb-1" style="color:var(--text-faint)">// NEURAL_SCORE_INTERPRETATION</p>
+                <p class="font-display text-xl font-700" style="color:var(--text-primary)" id="score-label">Computing...</p>
+              </div>
+              <div class="h-divider"></div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="glass-cyan rounded-xl p-4">
+                  <p class="font-mono text-xs text-cyan-400/60 mb-1">Matched Skills</p>
+                  <p class="font-display text-2xl font-700 text-cyan-400" id="matched-count">–</p>
+                </div>
+                <div class="rounded-xl p-4" style="background:var(--score-mini-rose-bg);border:1px solid var(--score-mini-rose-border);">
+                  <p class="font-mono text-xs text-rose-400/60 mb-1">Skill Gaps</p>
+                  <p class="font-display text-2xl font-700 text-rose-400" id="missing-count">–</p>
+                </div>
+              </div>
+              <p class="font-mono text-xs" style="color:var(--text-faint)">
+                Score is derived from semantic similarity between your resume and the target job description using the NeuralDocs analysis engine.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. SKILLS GRID -->
+      <div class="card-entrance" style="animation-delay:0.2s;">
+        <p class="section-label"><span class="line"></span>Skills Intelligence<span class="line" style="background:linear-gradient(90deg,transparent,rgba(191,95,255,0.2));"></span></p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          <!-- Matched Skills -->
+          <div class="glass-cyan rounded-2xl p-6 relative">
+            <div class="corner-tl"></div>
+            <div class="flex items-center gap-2 mb-5">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(0,255,157,0.1);border:1px solid rgba(0,255,157,0.25);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff9d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <span class="font-display font-700 text-sm text-emerald-300">Matched Skills</span>
+              <span class="ml-auto font-mono text-xs px-2 py-0.5 rounded-full" style="background:rgba(0,255,157,0.08);border:1px solid rgba(0,255,157,0.2);color:rgba(0,255,157,0.7);">
+                VERIFIED
+              </span>
+            </div>
+            <div class="space-y-2" id="matched-list">
+              {% for skill in ai_result.matched_skills %}
+              <div class="skill-matched">
+                <span class="icon">
+                  <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="#00ff9d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 3 5 9 2 6"/></svg>
+                </span>
+                {{ skill }}
+              </div>
+              {% empty %}
+              <div class="empty-state">
+                <p class="mb-1">⬡</p>
+                <p>No matched skills detected</p>
+                <p class="mt-1" style="color:rgba(148,163,184,0.2);">Refine your resume or job description</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Missing Skills -->
+          <div class="glass-violet rounded-2xl p-6 relative">
+            <div class="corner-br"></div>
+            <div class="flex items-center gap-2 mb-5">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.25);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </div>
+              <span class="font-display font-700 text-sm text-rose-300">Skill Gaps</span>
+              <span class="ml-auto font-mono text-xs px-2 py-0.5 rounded-full" style="background:rgba(251,113,133,0.07);border:1px solid rgba(251,113,133,0.2);color:rgba(251,113,133,0.7);">
+                ACTION NEEDED
+              </span>
+            </div>
+            <div class="space-y-2" id="missing-list">
+              {% for skill in ai_result.missing_skills %}
+              <div class="skill-missing">
+                <span class="icon">
+                  <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="#fb7185" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+                </span>
+                {{ skill }}
+              </div>
+              {% empty %}
+              <div class="empty-state">
+                <p class="mb-1">✦</p>
+                <p>No skill gaps found</p>
+                <p class="mt-1" style="color:rgba(148,163,184,0.2);">Excellent profile alignment!</p>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 4. AI INSIGHTS TERMINAL -->
+      <div class="card-entrance" style="animation-delay:0.3s;">
+        <p class="section-label"><span class="line"></span>AI Recruiter Insights<span class="line" style="background:linear-gradient(90deg,transparent,rgba(191,95,255,0.2));"></span></p>
+        <div class="terminal">
+          <div class="terminal-topbar">
+            <div class="terminal-dot" style="background:#ef4444;box-shadow:0 0 6px #ef4444aa;"></div>
+            <div class="terminal-dot" style="background:#f59e0b;box-shadow:0 0 6px #f59e0baa;"></div>
+            <div class="terminal-dot" style="background:#00ff9d;box-shadow:0 0 6px #00ff9daa;"></div>
+            <span class="font-mono text-xs ml-3" style="color:var(--text-faint)">neural_recruiter_v2 — stdout</span>
+            <span class="ml-auto font-mono text-xs" style="color:rgba(0,245,255,0.4);">● LIVE</span>
+          </div>
+          <div class="terminal-content">
+            <span style="color:rgba(0,245,255,0.5);">$</span> <span style="color:rgba(191,95,255,0.7);">neural_recruiter</span> <span style="color:rgba(148,163,184,0.5);">--analyze --verbose</span>
+            <br/><br/>
+            <span style="color:rgba(0,255,157,0.6);">[ANALYSIS COMPLETE]</span>
+            <br/><br/>
+{{ ai_result.feedback }}<span class="terminal-cursor"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. NAVIGATION -->
+      <div class="card-entrance flex flex-col sm:flex-row items-center justify-between gap-4 py-4" style="animation-delay:0.4s;">
+        <p class="font-mono text-xs" style="color:var(--text-faint)">
+          Report ID: <span style="color:rgba(0,245,255,0.3);">ND-{{ ai_result.match_percentage }}-XXXX</span>
+        </p>
+        <a href="{% url 'upload_and_analyze' %}" class="btn-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
+          </svg>
+          Analyze New Document
+        </a>
+      </div>
+
+    </main>
+
+    <!-- ══ FOOTER ══ -->
+    <footer class="px-10 py-4 flex items-center justify-between mt-4" style="border-top:1px solid var(--header-border);transition:border-color 0.4s ease;">
+      <span class="font-mono text-xs" style="color:var(--footer-text)">© 2026 NeuralDocs AI</span>
+      <span class="font-mono text-xs" style="color:var(--footer-text)">BUILD_<span style="color:rgba(0,245,255,0.3)">2406</span></span>
+    </footer>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SCORE ANIMATION + SKILL PILLS
+  ════════════════════════════════════════════════ -->
+  <script>
+    const score = parseInt("{{ ai_result.match_percentage }}", 10) || 0;
+    const matchedCount = document.querySelectorAll('#matched-list .skill-matched').length;
+    const missingCount = document.querySelectorAll('#missing-list .skill-missing').length;
+
+    document.getElementById('matched-count').textContent = matchedCount;
+    document.getElementById('missing-count').textContent = missingCount;
+
+    const arcContainer = document.getElementById('arc-container');
+    const scoreGlow    = document.getElementById('score-glow');
+    const scoreLabel   = document.getElementById('score-label');
+
+    let scoreClass, glowColor, labelText;
+    if (score >= 70)      { scoreClass='score-high'; glowColor='#00ff9d'; labelText='Strong Match — Excellent Alignment'; }
+    else if (score >= 40) { scoreClass='score-mid';  glowColor='#f59e0b'; labelText='Moderate Match — Targeted Improvements Needed'; }
+    else                  { scoreClass='score-low';  glowColor='#bf5fff'; labelText='Low Match — Significant Skill Gaps Detected'; }
+
+    arcContainer.classList.add(scoreClass);
+    scoreGlow.style.background = glowColor;
+    scoreLabel.textContent = labelText;
+
+    const dashOffset = 534 - (score / 100) * 534;
+    const arcFill    = document.getElementById('arc-fill');
+    const arcPercent = document.getElementById('arc-percent');
+    setTimeout(() => { arcFill.style.strokeDashoffset = dashOffset; }, 300);
+
+    let current = 0;
+    const startTime = performance.now();
+    function countUp(ts) {
+      const elapsed = ts - startTime - 300;
+      if (elapsed < 0) { requestAnimationFrame(countUp); return; }
+      const ease = 1 - Math.pow(1 - Math.min(elapsed / 1800, 1), 3);
+      current = Math.round(ease * score);
+      arcPercent.textContent = current + '%';
+      if (ease < 1) requestAnimationFrame(countUp);
+    }
+    requestAnimationFrame(countUp);
+
+    document.querySelectorAll('.card-entrance').forEach((el, i) => { el.style.animationDelay = `${i * 0.12}s`; });
+    document.querySelectorAll('.skill-matched, .skill-missing').forEach((el, i) => {
+      el.style.opacity = '0'; el.style.transform = 'translateX(-10px)';
+      el.style.transition = `opacity 0.4s ease ${0.5 + i * 0.06}s, transform 0.4s ease ${0.5 + i * 0.06}s`;
+      setTimeout(() => { el.style.opacity='1'; el.style.transform='translateX(0)'; }, 50);
+    });
+  </script>
+
+  <!-- ════════════════════════════════════════════════
+       THEME SWITCHER — localStorage persisted
+  ════════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      var html = document.documentElement;
+      var btn  = document.getElementById('theme-toggle');
+
+      function applyTheme(theme) {
+        if (theme === 'light') {
+          html.classList.remove('dark');
+          html.classList.add('light');
+        } else {
+          html.classList.remove('light');
+          html.classList.add('dark');
+        }
+        localStorage.setItem('nd-theme', theme);
+      }
+
+      btn.addEventListener('click', function () {
+        applyTheme(html.classList.contains('light') ? 'dark' : 'light');
+      });
+
+      if (!localStorage.getItem('nd-theme')) {
+        applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      }
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+        if (!localStorage.getItem('nd-theme')) applyTheme(e.matches ? 'dark' : 'light');
+      });
+    })();
+  </script>
+
 </body>
 </html>
